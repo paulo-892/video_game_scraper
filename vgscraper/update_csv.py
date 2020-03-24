@@ -1,4 +1,5 @@
 from tempfile import NamedTemporaryFile
+import os
 import json
 import shutil
 import ast
@@ -50,4 +51,5 @@ if __name__ == '__main__':
             writer.writerow(row)
 
         shutil.move(tempfile.name, old_csv)
+        os.remove(prices_by_upc)
         f.close()
