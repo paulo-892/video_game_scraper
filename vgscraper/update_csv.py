@@ -5,11 +5,16 @@ import shutil
 import ast
 import csv
 
+# constants
+HEADER_ROWS = 1
+UPC_COL = 1
+PRICE_COL = 8
+
 if __name__ == '__main__':
 
     # gets names of CSV to be updated and prices by upc document
-    old_csv = './test.csv'
-    prices_by_upc = './prices_by_upc'
+    old_csv = './SS - Video Games [Collection & Completion] - All.csv'
+    prices_by_upc = './prices_by_upc.txt'
     tempfile = NamedTemporaryFile(delete=False,mode='w+t')
 
     # opens both files
@@ -30,22 +35,18 @@ if __name__ == '__main__':
 
         # for each row in the old CSV...
         for i, row in enumerate(reader):
-            print(i, row)
 
             # if the row is a game-entry row...
-            if (i >= 1):
+            if (i >= HEADER_ROWS):
                 # extracts upc
-                upc = row[1]
-                print(i, upc)
+                upc = row[UPC_COL]
 
                 # looks up price based on upc
                 price = full_dict[upc]
-                print(i, price)
 
                 # updates row
-                row[7] = price
-                print(i, row[7])
-                print('hiya')
+                row[UPC_COL] = "\'" + str(upc)
+                row[PRICE_COL] = price
 
             # writes the new row
             writer.writerow(row)

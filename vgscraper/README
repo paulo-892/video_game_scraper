@@ -1,7 +1,7 @@
 To update your CSV:
 - Place the CSV in the first './vgscraper' directory, one level down from the Pipfile
 - Launch the pipenv shell from the parent directory
-- Update the CSV name to 'test.csv' or change the input file name in 'update_csv.py' and in the spider (in the spiders folder)
+- Update the CSV name to 'SS - Video Games [Collection & Completion] - All.csv' or change the input file name in 'update_csv.py' and in the spider (in the spiders folder)
 - Run 'scrapy crawl games' from the first './vgscraper' directory => this will update the 'prices_by_upc' file
 - Run 'python update_csv.py' to update the CSV with the data from 'prices_by_upc'
 - Insert the updated CSV into Google Drive

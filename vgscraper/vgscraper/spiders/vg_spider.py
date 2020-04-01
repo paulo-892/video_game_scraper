@@ -4,6 +4,11 @@ import shutil
 import csv
 import scrapy
 
+# constants
+HEADER_ROWS = 1
+UPC_COL = 1
+COND_COL = 3
+
 class VGSpider(scrapy.Spider):
     # name of spider
     name = "games"
@@ -13,7 +18,7 @@ class VGSpider(scrapy.Spider):
 
     def parse(self, response):
 
-        filename = './test.csv'
+        filename = './SS - Video Games [Collection & Completion] - All.csv'
 
         # opens the file in read-only mode
         with open(filename, 'rt') as csvFile:
@@ -29,39 +34,54 @@ class VGSpider(scrapy.Spider):
             # for each row in the CSV...
             for i, row in enumerate(reader):
                 # ignores any non-game entries
-                if (i >= 1):
+                if (i >= HEADER_ROWS):
                     # extracts the upc
-                    upc = row[1]
+                    upc = row[UPC_COL]
 
                     # if there are multiple of same upc, removes ID and sends regular upc to request
                     sep = '-'
                     alt_upc = upc.split(sep, 1)[0]
-                    cond = row[3]
+                    cond = row[COND_COL]
                     
                     data = {
                         'q': alt_upc,
                         'type': 'videogames',
                     }
-                    print('heyooo1', cond)
+
                     # finds the price by the upc and adds it to the dictionary
                     res = yield scrapy.FormRequest(url='https://www.pricecharting.com/search-products', dont_filter=True, formdata=data, callback=self.parse_result, meta={'upc': upc, 'cond': cond})
-                    print('heyooo2', cond)
 
     def parse_result(self, response):
+        # extract several fields
         cond = response.meta['cond']
-        
+        upc = response.meta['upc']
+
+        # convert condition into proper request
+        field = None
         if cond == 'Loose':
-            price = (str.strip(((response.css('#used_price span.js-price::text').get()).encode('ascii','replace')))).replace('$','')
+            field = '#used_price'
         elif cond == 'CIB':
-            price = (str.strip(((response.css('#complete_price span.js-price::text').get()).encode('ascii','replace')))).replace('$','')
+            field = '#complete_price'
         elif cond == 'SIB':
-            price = (str.strip(((response.css('#new_price span.js-price::text').get()).encode('ascii','replace')))).replace('$','')
+            field = '#new_price'
         else:
-            print('Error - unknown condition')
+            print('ERROR - Item with UPC ' + str(upc) + ' has unrecognized condition ' + cond)
+            return
 
-        print(cond, price)
+        # issue request to page
+        result = response.css(field + ' span.js-price::text').get()
 
-        with open('prices_by_upc', 'a') as f:
+        # if the price isn't found, returns
+        if result is None:
+            print('ERROR - Item with UPC ' + str(upc) + ' not found on VGPC')
+            return
+
+        # formats the price
+        encoded_result = str.strip(result.encode('ascii','replace'))
+        price = encoded_result.replace('$','')
+        
+        # writes the results to a file
+        with open('prices_by_upc.txt', 'a') as f:
             f.write(json.dumps({response.meta['upc']:price}))
             f.write(',')
             f.close()
