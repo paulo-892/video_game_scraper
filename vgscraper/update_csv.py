@@ -41,6 +41,11 @@ if __name__ == '__main__':
                 # extracts upc
                 upc = row[UPC_COL]
 
+                # if upc is N/A, special case and so return normal row
+                if upc == 'N/A':
+                    writer.writerow(row)
+                    continue
+
                 # looks up price based on upc
                 price = full_dict[upc]
 

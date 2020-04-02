@@ -48,6 +48,10 @@ class VGSpider(scrapy.Spider):
                         'type': 'videogames',
                     }
 
+                    # if upc is N/A, special case and so return
+                    if upc == 'N/A':
+                        continue
+
                     # finds the price by the upc and adds it to the dictionary
                     res = yield scrapy.FormRequest(url='https://www.pricecharting.com/search-products', dont_filter=True, formdata=data, callback=self.parse_result, meta={'upc': upc, 'cond': cond})
 
