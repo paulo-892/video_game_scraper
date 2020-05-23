@@ -86,6 +86,7 @@ class VGSpider(scrapy.Spider):
         
         # writes the results to a file
         with open('prices_by_upc.txt', 'a') as f:
-            f.write(json.dumps({response.meta['upc']:price}))
+            key = response.meta['upc'] + "-" + cond
+            f.write(json.dumps({key:price}))
             f.write(',')
             f.close()

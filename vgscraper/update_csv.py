@@ -8,6 +8,7 @@ import csv
 # constants
 HEADER_ROWS = 1
 UPC_COL = 1
+COND_COL = 3
 PRICE_COL = 8
 
 if __name__ == '__main__':
@@ -40,14 +41,18 @@ if __name__ == '__main__':
             if (i >= HEADER_ROWS):
                 # extracts upc
                 upc = row[UPC_COL]
+                cond = row[COND_COL]
 
                 # if upc is N/A, special case and so return normal row
                 if upc == 'N/A':
                     writer.writerow(row)
                     continue
 
+                # combines upc with condition to create identifier
+                ident = upc + '-' + cond
+
                 # looks up price based on upc
-                price = full_dict[upc]
+                price = full_dict[ident]
 
                 # updates row
                 row[UPC_COL] = "\'" + str(upc)
