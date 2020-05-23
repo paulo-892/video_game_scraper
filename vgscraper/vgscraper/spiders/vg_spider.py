@@ -18,7 +18,7 @@ class VGSpider(scrapy.Spider):
 
     def parse(self, response):
 
-        filename = './SS - Video Games [Collection & Completion] - All.csv'
+        filename = './Video Games [Collection _ Completion].csv'
 
         # opens the file in read-only mode
         with open(filename, 'rt') as csvFile:
@@ -42,6 +42,11 @@ class VGSpider(scrapy.Spider):
                     sep = '-'
                     alt_upc = upc.split(sep, 1)[0]
                     cond = row[COND_COL]
+
+                    # if file has been altered before, needs to be handled slightly differently
+                    # this section accounts for that
+                    if alt_upc[0] == '\'':
+                        alt_upc = alt_upc[1:]
                     
                     data = {
                         'q': alt_upc,

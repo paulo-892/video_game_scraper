@@ -14,7 +14,7 @@ PRICE_COL = 8
 if __name__ == '__main__':
 
     # gets names of CSV to be updated and prices by upc document
-    old_csv = './SS - Video Games [Collection & Completion] - All.csv'
+    old_csv = './Video Games [Collection _ Completion].csv'
     prices_by_upc = './prices_by_upc.txt'
     tempfile = NamedTemporaryFile(delete=False,mode='w+t')
 
