@@ -5,3 +5,24 @@ To update your CSV:
 - Run 'scrapy crawl games' from the first './vgscraper' directory => this will update the 'prices_by_upc' file
 - Run 'python update_csv.py' to update the CSV with the data from 'prices_by_upc'
 - Insert the updated CSV into Google Drive
+
+
+Notes from 04/05/23
+
+- Development:
+    - make changes to function
+    - run "zip -r lamba.zip lambda_function.py " to update existing zip file with new function
+    - upload and run
+
+- Added two layers to lambda, each one for a different dependency that needed to be manually built in the lambda
+environment
+- I built them according to this: https://stackoverflow.com/questions/69354131/how-to-import-lxml-from-precompiled-binary-on-aws-lambda
+- Needed to use Python3.8 bc that's the most recent runtime for which there was a Lambda-like image to build all my
+dependencies on
+
+Next steps:
+- Clean up the code
+- Reupload to Lambda
+- Perhaps create a new version for each run?
+- Put this MF on a schedule
+- Dashboards??

@@ -7,60 +7,50 @@ import csv
 
 # constants
 HEADER_ROWS = 1
-UPC_COL = 1
-COND_COL = 3
-PRICE_COL = 8
+ID_COL = 0
+UPC_COL = 2
+PRICE_COL = 9
+
+OLD_CSV_FILENAME = './src_csv/video_game_collection - All.csv'
+PRICE_MAPPING_FILENAME = './id_to_price/id_to_price.txt'
 
 if __name__ == '__main__':
 
-    # gets names of CSV to be updated and prices by upc document
-    old_csv = './Video Games [Collection _ Completion].csv'
-    prices_by_upc = './prices_by_upc.txt'
     tempfile = NamedTemporaryFile(delete=False,mode='w+t')
 
     # opens both files
-    with open(old_csv, 'rt') as oldCSV, tempfile:
+    with open(OLD_CSV_FILENAME, 'rt') as oldCSV, tempfile:
         # opens old and new CSV files as CSV
         reader = csv.reader(oldCSV, delimiter=',', quotechar='"')
         writer = csv.writer(tempfile, delimiter=',', quotechar='"')
 
         # opens other file as dict (requires some steps)
-        f = open(prices_by_upc, 'rt')
-        string = (f.read()).split(',')
-        string = string[0:len(string) - 1]
-        dics = [ast.literal_eval(x) for x in string]
+        f = open(PRICE_MAPPING_FILENAME, 'rt')
+
+        strings = (f.read()).split(',')[:-1]
+        string_dicts = [json.loads(string) for string in strings]
 
         full_dict = {}
-        for dic in dics:
-            full_dict.update(dic)
+        for dict in string_dicts:
+            full_dict.update(dict)
+
+        ids_to_update = list(full_dict.keys())
 
         # for each row in the old CSV...
         for i, row in enumerate(reader):
 
             # if the row is a game-entry row...
             if (i >= HEADER_ROWS):
-                # extracts upc
-                upc = row[UPC_COL]
-                cond = row[COND_COL]
+                id = row[ID_COL]
 
-                # if upc is N/A, special case and so return normal row
-                if upc == 'N/A':
-                    writer.writerow(row)
-                    continue
+                if id in ids_to_update:
+                    price = full_dict[id]
+                    row[PRICE_COL] = price
 
-                # combines upc with condition to create identifier
-                ident = upc + '-' + cond
-
-                # looks up price based on upc
-                price = full_dict[ident]
-
-                # updates row
-                row[UPC_COL] = "\'" + str(upc)
-                row[PRICE_COL] = price
 
             # writes the new row
             writer.writerow(row)
 
-        shutil.move(tempfile.name, old_csv)
-        os.remove(prices_by_upc)
+        shutil.move(tempfile.name, OLD_CSV_FILENAME)
+        #os.remove(prices_by_upc)
         f.close()

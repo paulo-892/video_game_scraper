@@ -3,95 +3,89 @@ import json
 import shutil
 import csv
 import scrapy
+import urllib
+
+import re
+import os
+from datetime import datetime
 
 # constants
 HEADER_ROWS = 1
-UPC_COL = 1
-COND_COL = 3
+ID_COL = 0
+UPC_COL = 2
+COND_COL = 4
+
+CSV_NAME = './vgscraper/test.csv'
+
+CONDITION_TO_FIELD = {
+    'Loose': '#used_price'
+    , 'CIB': '#complete_price'
+    , 'SIB': '#new_price'
+}
 
 class VGSpider(scrapy.Spider):
     # name of spider
     name = "games"
 
-    # start URL
-    start_urls = ['https://www.pricecharting.com/']
+    start_urls = ["https://www.pricecharting.com"]
 
     def parse(self, response):
 
-        filename = './Video Games [Collection _ Completion].csv'
-
-        # opens the file in read-only mode
-        with open(filename, 'rt') as csvFile:
+        with open(CSV_NAME, 'rt') as csvFile:
 
             # creates a CSV reader for the file
             reader = csv.reader(csvFile, delimiter=',', quotechar='"')
 
-            # opens a recipient file
-            #f = open('price_by_upc', 'w+')
-
-            prices_by_upc = {}
+            uuid_to_game_metadata = {}
 
             # for each row in the CSV...
             for i, row in enumerate(reader):
                 # ignores any non-game entries
-                if (i >= HEADER_ROWS):
-                    # extracts the upc
+                # if i >= 2:
+                #     break
+                if i >= HEADER_ROWS:
+                    # extracts row details
+                    uuid = row[ID_COL]
                     upc = row[UPC_COL]
+                    condition = row[COND_COL]
 
-                    # if there are multiple of same upc, removes ID and sends regular upc to request
-                    sep = '-'
-                    alt_upc = upc.split(sep, 1)[0]
-                    cond = row[COND_COL]
-
-                    # if file has been altered before, needs to be handled slightly differently
-                    # this section accounts for that
-                    if alt_upc[0] == '\'':
-                        alt_upc = alt_upc[1:]
-                    
-                    data = {
-                        'q': alt_upc,
-                        'type': 'videogames',
-                    }
-
-                    # if upc is N/A, special case and so return
                     if upc == 'N/A':
                         continue
 
-                    # finds the price by the upc and adds it to the dictionary
-                    res = yield scrapy.FormRequest(url='https://www.pricecharting.com/search-products', dont_filter=True, formdata=data, callback=self.parse_result, meta={'upc': upc, 'cond': cond})
+                    separator = '-'
+                    # strips quotes and handles the separators
+                    uuid_to_game_metadata[uuid] = {
+                        'raw_upc': upc
+                        , 'clean_upc': upc.split(separator)[0].replace("\'", "")
+                        , 'condition': condition
+                    }
+
+                    for uuid, metadata in uuid_to_game_metadata.items():
+                        yield scrapy.Request(url='https://www.pricecharting.com/search-products?type=prices&q={clean_upc}'.format(clean_upc=metadata["clean_upc"]), 
+                            callback=self.parse_result, meta={'condition': metadata["condition"], 'clean_upc': metadata["clean_upc"], 'raw_upc': metadata["raw_upc"], 
+                            'uuid': uuid})
+
 
     def parse_result(self, response):
-        # extract several fields
-        cond = response.meta['cond']
-        upc = response.meta['upc']
+        uuid = response.meta['uuid']
+        raw_upc = response.meta['raw_upc']
+        clean_upc = response.meta['clean_upc']
+        condition = response.meta['condition']
 
-        # convert condition into proper request
-        field = None
-        if cond == 'Loose':
-            field = '#used_price'
-        elif cond == 'CIB':
-            field = '#complete_price'
-        elif cond == 'SIB':
-            field = '#new_price'
-        else:
-            print('ERROR - Item with UPC ' + str(upc) + ' has unrecognized condition ' + cond)
-            return
+        css_field = CONDITION_TO_FIELD[condition]
 
         # issue request to page
-        result = response.css(field + ' span.js-price::text').get()
+        price = response.css(css_field + ' span.js-price::text').get()
 
         # if the price isn't found, returns
-        if result is None:
-            print('ERROR - Item with UPC ' + str(upc) + ' not found on VGPC')
+        if price is None:
+            print('ERROR - Item with UPC ' + str(raw_upc) + ' not found on VGPC')
             return
 
-        # formats the price
-        encoded_result = str.strip(result.encode('ascii','replace'))
-        price = encoded_result.replace('$','')
-        
-        # writes the results to a file
-        with open('prices_by_upc.txt', 'a') as f:
-            key = response.meta['upc'] + "-" + cond
-            f.write(json.dumps({key:price}))
+
+        price = price.strip().replace('$', '')
+
+        with open('./id_to_price/id_to_price.txt', 'a') as f:
+            f.write(json.dumps({uuid: price}))
             f.write(',')
             f.close()
